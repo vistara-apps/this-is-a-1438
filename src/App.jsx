@@ -7,6 +7,7 @@ import RightsGuide from './pages/RightsGuide'
 import StateLaws from './pages/StateLaws'
 import IncidentRecorder from './pages/IncidentRecorder'
 import Profile from './pages/Profile'
+import SharedIncident from './pages/SharedIncident'
 import AppShell from './components/AppShell'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
           <Route path="/state-laws" element={<AppShell><StateLaws /></AppShell>} />
           <Route path="/incident-recorder" element={<AppShell><IncidentRecorder /></AppShell>} />
           <Route path="/profile" element={<AppShell><Profile /></AppShell>} />
+          <Route path="/shared-incident" element={<SharedIncident />} />
         </Routes>
       </div>
     </AppContextProvider>
