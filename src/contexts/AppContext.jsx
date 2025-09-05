@@ -1,4 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { 
+  saveUser, 
+  getUser, 
+  saveIncidents, 
+  getIncidents, 
+  saveSettings, 
+  getSettings,
+  saveSubscription,
+  getSubscription
+} from '../utils/storage'
 
 const AppContext = createContext()
 
@@ -16,36 +26,70 @@ export const AppContextProvider = ({ children }) => {
   const [isRecording, setIsRecording] = useState(false)
   const [selectedState, setSelectedState] = useState('')
   const [language, setLanguage] = useState('en')
+  const [settings, setSettings] = useState({})
+  const [subscription, setSubscription] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // Load user data from localStorage on mount
+  // Load data from enhanced storage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('gavelguard-user')
-    const savedRecords = localStorage.getItem('gavelguard-incidents')
-    const savedState = localStorage.getItem('gavelguard-state')
-    const savedLanguage = localStorage.getItem('gavelguard-language')
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        
+        // Load user data
+        const savedUser = getUser()
+        if (savedUser) setUser(savedUser)
 
-    if (savedUser) setUser(JSON.parse(savedUser))
-    if (savedRecords) setIncidentRecords(JSON.parse(savedRecords))
-    if (savedState) setSelectedState(savedState)
-    if (savedLanguage) setLanguage(savedLanguage)
+        // Load incidents
+        const savedIncidents = getIncidents()
+        if (savedIncidents) setIncidentRecords(savedIncidents)
+
+        // Load settings
+        const savedSettings = getSettings()
+        if (savedSettings) {
+          setSettings(savedSettings)
+          if (savedSettings.selectedState) setSelectedState(savedSettings.selectedState)
+          if (savedSettings.language) setLanguage(savedSettings.language)
+        }
+
+        // Load subscription
+        const savedSubscription = getSubscription()
+        if (savedSubscription) setSubscription(savedSubscription)
+
+      } catch (error) {
+        console.error('Error loading app data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
 
-  // Save to localStorage when state changes
+  // Save to enhanced storage when state changes
   useEffect(() => {
-    if (user) localStorage.setItem('gavelguard-user', JSON.stringify(user))
-  }, [user])
+    if (user && !loading) saveUser(user)
+  }, [user, loading])
 
   useEffect(() => {
-    localStorage.setItem('gavelguard-incidents', JSON.stringify(incidentRecords))
-  }, [incidentRecords])
+    if (!loading) saveIncidents(incidentRecords)
+  }, [incidentRecords, loading])
 
   useEffect(() => {
-    if (selectedState) localStorage.setItem('gavelguard-state', selectedState)
-  }, [selectedState])
+    if (!loading) {
+      const newSettings = {
+        ...settings,
+        selectedState,
+        language
+      }
+      setSettings(newSettings)
+      saveSettings(newSettings)
+    }
+  }, [selectedState, language, loading])
 
   useEffect(() => {
-    localStorage.setItem('gavelguard-language', language)
-  }, [language])
+    if (subscription && !loading) saveSubscription(subscription)
+  }, [subscription, loading])
 
   const addIncidentRecord = (record) => {
     const newRecord = {
@@ -62,6 +106,33 @@ export const AppContextProvider = ({ children }) => {
     setUser(prev => ({ ...prev, ...userData }))
   }
 
+  const updateSettings = (newSettings) => {
+    setSettings(prev => ({ ...prev, ...newSettings }))
+  }
+
+  const deleteIncidentRecord = (recordId) => {
+    setIncidentRecords(prev => prev.filter(record => record.recordId !== recordId))
+  }
+
+  const updateIncidentRecord = (recordId, updates) => {
+    setIncidentRecords(prev => 
+      prev.map(record => 
+        record.recordId === recordId 
+          ? { ...record, ...updates }
+          : record
+      )
+    )
+  }
+
+  const clearAllData = () => {
+    setUser(null)
+    setIncidentRecords([])
+    setSettings({})
+    setSubscription(null)
+    setSelectedState('')
+    setLanguage('en')
+  }
+
   const value = {
     user,
     setUser,
@@ -69,12 +140,21 @@ export const AppContextProvider = ({ children }) => {
     incidentRecords,
     setIncidentRecords,
     addIncidentRecord,
+    deleteIncidentRecord,
+    updateIncidentRecord,
     isRecording,
     setIsRecording,
     selectedState,
     setSelectedState,
     language,
-    setLanguage
+    setLanguage,
+    settings,
+    setSettings,
+    updateSettings,
+    subscription,
+    setSubscription,
+    loading,
+    clearAllData
   }
 
   return (
